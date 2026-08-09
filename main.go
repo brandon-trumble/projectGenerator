@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"projectGenerator/project_generator"
+	"projectGenerator/project_generator/forms"
 	"runtime"
 	"time"
 
@@ -43,97 +44,19 @@ func main() {
 	fmt.Println("\n", asciColor.Render(banner))
 	// basic form
 	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().
-				Title("Enter project name\n").
-				Validate(func(s string) error {
-					if s == "" {
-						return errors.New("project name is invalid. Please enter a new name")
-					}
-					return nil
-				}).
-				Placeholder("EX: funApi").
-				Value(&projectName),
-			huh.NewConfirm().
-				Title("Confirm project name?").
-				Affirmative("Yes").
-				Negative("No").
-				Value(&allowProjectName).
-				Validate(func(b bool) error {
-					if !allowProjectName {
-						return errors.New("please enter a new name. Press shift+tab")
-					}
-					return nil
-				}),
-		),
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Choose a project\n").
-				Options(
-					huh.NewOption("Http-Backend", "http_backend"),
-					huh.NewOption("Cli-Application", "cli_project"),
-					huh.NewOption("Empty-Project", "empty_project"),
-				).Value(&selectedProject),
 
-			huh.NewConfirm().
-				Title("Confirm project type?").
-				Affirmative("Yes").
-				Negative("No").
-				Value(&allowProjectType).
-				Validate(func(b bool) error {
-					if !allowProjectType {
-						return errors.New("please select a new project type. Please press shift+tab")
-					}
-					return nil
-				}),
-		),
-		// this will be hidden if they don't choose the http-backend
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Choose a database framework\n").
-				Options(
-					huh.NewOption("PostgreSQL(PGX driver)", "postgres"),
-					huh.NewOption("Mysql", "mysql"),
-					huh.NewOption("No database", "none"),
-				).Value(&selectedDatabase),
-			huh.NewConfirm().
-				Title("Confirm database?").
-				Affirmative("Yes").
-				Negative("No").
-				Value(&allowDatabaseFramework).
-				Validate(func(b bool) error {
-					if !allowDatabaseFramework {
-						return errors.New("please select a new database framework. Please press shift+tab")
-					}
-					return nil
-				}),
-		).WithHideFunc(func() bool {
-			return selectedProject != "http_backend"
-		}),
+		forms.LoadProjectNameForm(&projectName, &allowProjectName),
 
-		huh.NewGroup(
-			huh.NewConfirm().
-				Title("Include test cases?").
-				Affirmative("Yes").
-				Negative("No").
-				Value(&allowTestCases),
-		).WithHideFunc(func() bool {
-			return selectedProject != "http_backend"
-		}),
+		forms.LoadProjectTypeForm(&selectedProject, &allowProjectType),
+
+		// this will be hidden if they don't choose the http_backend
+		forms.LoadProjectDatabaseForm(&selectedDatabase, &selectedProject, &allowDatabaseFramework),
+
+		// this will only show with http_backend selected
+		forms.LoadTestCasesForm(&allowTestCases, &selectedProject),
 
 		// this will only show with the command line selected
-		huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("What kind of CLI application?\n").
-				Options(
-					huh.NewOption("Basic Input Form (Huh)", "cli-huh"),
-					huh.NewOption("Interactive TUI (Bubble Tea)", "cli-bubbletea"),
-					huh.NewOption("Standard Flags Only (Cobra)", "cli-cobra"),
-				).
-				Value(&cliFramework),
-		).WithHideFunc(func() bool {
-			return selectedProject != "cli_project"
-		}),
+		forms.LoadCliFrameworkForm(&cliFramework, &selectedProject),
 	)
 
 	if err := form.Run(); err != nil {
