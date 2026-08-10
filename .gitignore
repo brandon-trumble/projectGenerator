@@ -30,3 +30,6 @@ coverage.txt
 
 # Go
 vendor/
+
+
+projectGeneratorExe
