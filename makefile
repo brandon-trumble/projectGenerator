@@ -6,5 +6,8 @@ build:
 clean:
 	rm $(BINARY_NAME)
 
+run:
+	go run main.go
+
 vet:
 	go vet

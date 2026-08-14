@@ -82,7 +82,7 @@ func main() {
 			// I know this is counterintuitive, but it's needed.
 			time.Sleep(500 * time.Millisecond)
 
-			projectDir, generationErr = project_generator.GenerateProject(projectName, selectedProject, selectedDatabase, allowTestCases)
+			projectDir, generationErr = project_generator.GenerateProject(projectName, selectedProject, selectedDatabase, cliFramework, allowTestCases)
 		}).
 		Run()
 

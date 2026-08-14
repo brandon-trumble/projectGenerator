@@ -1,0 +1,109 @@
+package handler
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"html/template"
+	"log/slog"
+	"net/http"
+
+	"{{ .ProjectName }}/internal/domain"
+	"{{ .ProjectName }}/internal/service"
+	"{{ .ProjectName }}/web"
+)
+
+// parsed once at startup. reparsing per request is the usual reason a small
+// server feels slow, and a broken template should fail loudly at boot.
+var pages = template.Must(template.ParseFS(web.Files, "templates/*.html"))
+
+type UserService interface {
+	AllUsers(ctx context.Context) ([]domain.UserModel, error)
+	AddUser(ctx context.Context, user domain.UserModel) error
+}
+
+type pageData struct {
+	Title string
+}
+
+func IndexHandler(title string) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		// "GET /" matches anything the other patterns did not, so unknown
+		// paths have to be rejected here
+		if request.URL.Path != "/" {
+			http.NotFound(writer, request)
+			return
+		}
+
+		render(writer, "index.html", pageData{Title: title})
+	}
+}
+
+// UsersFragmentHandler returns list items, not a page. htmx swaps whatever
+// html it gets straight into the target element.
+func UsersFragmentHandler(users UserService) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		found, err := users.AllUsers(request.Context())
+		if err != nil {
+			slog.Error("error fetching users.", "error", err)
+			http.Error(writer, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		render(writer, "users", found)
+	}
+}
+
+func AddUserHandler(users UserService) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		if err := request.ParseForm(); err != nil {
+			http.Error(writer, "could not read form", http.StatusBadRequest)
+			return
+		}
+
+		user := domain.UserModel{
+			UserName:  request.PostFormValue("userName"),
+			FirstName: request.PostFormValue("firstName"),
+			LastName:  request.PostFormValue("lastName"),
+		}
+
+		if err := users.AddUser(request.Context(), user); err != nil {
+			if errors.Is(err, service.ErrInvalidUser) {
+				http.Error(writer, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			slog.Error("error adding user.", "error", err)
+			http.Error(writer, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// answer with the updated list, so the form and the list stay in sync
+		// without a second request
+		found, err := users.AllUsers(request.Context())
+		if err != nil {
+			slog.Error("error fetching users.", "error", err)
+			http.Error(writer, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		render(writer, "users", found)
+	}
+}
+
+// render writes to a buffer first. executing straight to the ResponseWriter
+// sends a 200 and half a page when a template fails halfway through.
+func render(writer http.ResponseWriter, name string, data any) {
+	var buf bytes.Buffer
+
+	if err := pages.ExecuteTemplate(&buf, name, data); err != nil {
+		slog.Error("error rendering template.", "template", name, "error", err)
+		http.Error(writer, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if _, err := buf.WriteTo(writer); err != nil {
+		slog.Error("error writing response.", "error", err)
+	}
+}

@@ -4,7 +4,9 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 func main() {
@@ -40,8 +42,12 @@ func main() {
 		slog.Warn("Unrecognized logging level in env. Defaulting to info logs.", "provided_level", logEnv)
 	}
 
+	// cancelling this context is what triggers the graceful shutdown in run
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	// setup routes, db connects, etc
-	if err := run(context.Background(), os.Getenv); err != nil {
+	if err := run(ctx, os.Getenv); err != nil {
 		slog.Error("error during startup.", "error", err)
 		os.Exit(1)
 	}

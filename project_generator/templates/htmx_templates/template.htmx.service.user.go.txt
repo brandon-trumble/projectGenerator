@@ -1,0 +1,48 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strconv"
+	"time"
+
+	"{{ .ProjectName }}/internal/domain"
+)
+
+// ErrInvalidUser lets the handler answer with 400 instead of 500 without
+// knowing anything about the rules that were broken.
+var ErrInvalidUser = errors.New("invalid user")
+
+// UserRepository is declared here rather than in the repository package so the
+// service depends on behavior it needs, and can be tested without a store.
+type UserRepository interface {
+	AllUsers(ctx context.Context) ([]domain.UserModel, error)
+	AddUser(ctx context.Context, user domain.UserModel) error
+}
+
+type UserService struct {
+	repo UserRepository
+}
+
+func NewUserService(repo UserRepository) *UserService {
+	return &UserService{repo: repo}
+}
+
+func (s *UserService) AllUsers(ctx context.Context) ([]domain.UserModel, error) {
+	return s.repo.AllUsers(ctx)
+}
+
+func (s *UserService) AddUser(ctx context.Context, user domain.UserModel) error {
+	if user.UserName == "" {
+		return fmt.Errorf("%w: user name is required", ErrInvalidUser)
+	}
+
+	// ids are assigned here so every repository implementation gets them the
+	// same way
+	if user.UserId == "" {
+		user.UserId = strconv.FormatInt(time.Now().UnixNano(), 36)
+	}
+
+	return s.repo.AddUser(ctx, user)
+}

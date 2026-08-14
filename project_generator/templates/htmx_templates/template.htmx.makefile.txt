@@ -5,11 +5,11 @@ export
 BIN_DIR := bin
 
 #links to main.go file.
-CMD_DIR := ./cmd/api
-BINARY_NAME := main
+CMD_DIR := ./cmd/web
+BINARY_NAME := {{ .ProjectName }}
 
 # basic build cmd
-build :
+build:
 	@mkdir -p $(BIN_DIR)
 
 	go build -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_DIR)

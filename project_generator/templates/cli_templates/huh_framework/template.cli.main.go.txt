@@ -1,0 +1,37 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
+
+	"{{ .ProjectName }}/internal/prompt"
+)
+
+func main() {
+	cancelledText := lipgloss.NewStyle().Foreground(lipgloss.Red)
+	successText := lipgloss.NewStyle().Foreground(lipgloss.BrightGreen)
+
+	answers, err := prompt.Ask()
+	if err != nil {
+		// the user pressing ctrl+c is a clean exit, not a crash
+		if errors.Is(err, huh.ErrUserAborted) {
+			fmt.Println(cancelledText.Render("Cancelled."))
+			return
+		}
+
+		// terminal or rendering errors land here
+		fmt.Fprintln(os.Stderr, "error running form:", err)
+		os.Exit(1)
+	}
+
+	if !answers.Confirmed {
+		fmt.Println(cancelledText.Render("Nothing to do."))
+		return
+	}
+
+	fmt.Println(successText.Render(fmt.Sprintf("Hello %s, running against %s.", answers.Name, answers.Env)))
+}

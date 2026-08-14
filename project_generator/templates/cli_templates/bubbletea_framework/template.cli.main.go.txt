@@ -1,0 +1,23 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	tea "charm.land/bubbletea/v2"
+
+	"{{ .ProjectName }}/internal/tui"
+)
+
+func main() {
+	if _, err := tea.NewProgram(tui.NewModel()).Run(); err != nil {
+		// a ctrl+c during startup is a clean exit, not a crash
+		if errors.Is(err, tea.ErrInterrupted) {
+			return
+		}
+
+		fmt.Fprintln(os.Stderr, "error running program:", err)
+		os.Exit(1)
+	}
+}

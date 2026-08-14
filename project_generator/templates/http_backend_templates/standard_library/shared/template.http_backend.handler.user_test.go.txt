@@ -1,0 +1,62 @@
+package handler
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"{{ .ProjectName }}/internal/domain"
+)
+
+type stubUserService struct {
+	users []domain.UserModel
+	err   error
+}
+
+func (s stubUserService) AllUsers(context.Context) ([]domain.UserModel, error) {
+	return s.users, s.err
+}
+
+func TestAllUserFetchHandler(t *testing.T) {
+	user := domain.UserModel{UserId: "1", UserName: "gopher"}
+	service := stubUserService{users: []domain.UserModel{user}}
+
+	recorder := httptest.NewRecorder()
+	AllUserFetchHandler(service).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/users", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+	}
+
+	var users []domain.UserModel
+	if err := json.NewDecoder(recorder.Body).Decode(&users); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+
+	if len(users) != 1 || users[0].UserName != "gopher" {
+		t.Fatalf("unexpected users: %+v", users)
+	}
+}
+
+func TestAllUserFetchHandlerEncodesEmptyList(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	AllUserFetchHandler(stubUserService{}).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/users", nil))
+
+	if body := recorder.Body.String(); body != "[]\n" {
+		t.Fatalf("expected an empty json array, got: %q", body)
+	}
+}
+
+func TestAllUserFetchHandlerServiceError(t *testing.T) {
+	service := stubUserService{err: errors.New("connection refused")}
+
+	recorder := httptest.NewRecorder()
+	AllUserFetchHandler(service).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/users", nil))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, recorder.Code)
+	}
+}

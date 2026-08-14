@@ -1,0 +1,40 @@
+package commands
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/spf13/cobra"
+)
+
+// newGreetCommand is an example subcommand: copy this file as a starting point
+// for your own commands, then register them in root.go.
+func newGreetCommand() *cobra.Command {
+	var upper bool
+
+	greet := &cobra.Command{
+		Use:   "greet [name]",
+		Short: "Greet someone by name",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if verbose {
+				fmt.Fprintln(cmd.ErrOrStderr(), "greeting:", args[0])
+			}
+
+			greeting := fmt.Sprintf("Hello, %s!", args[0])
+			if upper {
+				greeting = strings.ToUpper(greeting)
+			}
+
+			// writing to cmd.OutOrStdout rather than straight to stdout is what
+			// lets a test capture the output
+			fmt.Fprintln(cmd.OutOrStdout(), greeting)
+
+			return nil
+		},
+	}
+
+	greet.Flags().BoolVar(&upper, "upper", false, "shout the greeting")
+
+	return greet
+}

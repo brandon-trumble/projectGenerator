@@ -1,0 +1,26 @@
+# {{ .ProjectName }}
+
+A bare Go module, laid out to grow.
+
+## Layout
+
+| Path | Holds |
+| --- | --- |
+| `cmd/{{ .ProjectName }}` | entry point |
+
+Add packages under `internal/` as you need them. Anything there can only be
+imported by this module, which is usually what you want for application code.
+
+## Running
+
+```bash
+make run
+```
+
+## Make targets
+
+| Target | Does |
+| --- | --- |
+| `make build` | compiles to `bin/{{ .ProjectName }}` |
+| `make run` | builds, then runs |
+| `make test` | `go test ./...` |

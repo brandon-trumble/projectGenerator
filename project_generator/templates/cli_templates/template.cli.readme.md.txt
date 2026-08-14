@@ -1,0 +1,136 @@
+{{- if eq .CliFramework "cli-cobra" -}}
+# {{ .ProjectName }}
+
+A command line tool built on [cobra](https://github.com/spf13/cobra).
+
+## Layout
+
+| Path | Holds |
+| --- | --- |
+| `cmd/{{ .ProjectName }}` | entry point, decides the exit code |
+| `internal/commands` | the command tree |
+
+## Running
+
+```bash
+make run
+```
+
+Or build once and call it directly:
+
+```bash
+make build
+./bin/{{ .ProjectName }} greet gopher
+./bin/{{ .ProjectName }} greet gopher --upper
+./bin/{{ .ProjectName }} --help
+```
+
+## Adding a command
+
+`internal/commands/greet.go` is there to be copied. Each command lives in its
+own file and returns a `*cobra.Command`, then gets registered in
+`newRootCommand`:
+
+```go
+root.AddCommand(newYourCommand())
+```
+
+Two things the example does on purpose:
+
+- writes to `cmd.OutOrStdout()` instead of stdout, which is what lets a test
+  capture the output
+- builds the tree in a function rather than package level vars, so a test can
+  make its own tree
+
+The root command sets `SilenceUsage`, so a runtime error prints the error alone
+instead of the full help text. Bad flags still print usage.
+{{- else if eq .CliFramework "cli-bubbletea" -}}
+# {{ .ProjectName }}
+
+A terminal UI built on [bubbletea](https://github.com/charmbracelet/bubbletea).
+
+## Layout
+
+| Path | Holds |
+| --- | --- |
+| `cmd/{{ .ProjectName }}` | entry point |
+| `internal/tui` | the model, its updates, and rendering |
+
+## Running
+
+```bash
+make run
+```
+
+| Key | Does |
+| --- | --- |
+| `up` / `k` | move up |
+| `down` / `j` | move down |
+| `enter` / `space` | toggle the highlighted item |
+| `q` / `ctrl+c` | quit |
+
+## The loop
+
+`internal/tui/model.go` holds all the state. Bubble Tea hands `Update` a message
+and takes back the next model, then calls `View` to render it. State only
+changes in `Update`, and `View` only renders, never works.
+
+Commands are how you do anything slow. Return a `tea.Cmd` from `Update`, and
+whatever it returns arrives as another message:
+
+```go
+func fetch() tea.Msg {
+    // runs off the UI loop
+    return resultMsg{}
+}
+```
+
+Note that v2 reports the space bar as `"space"`, not `" "`.
+{{- else -}}
+# {{ .ProjectName }}
+
+A prompt driven command line tool built on [huh](https://github.com/charmbracelet/huh).
+
+## Layout
+
+| Path | Holds |
+| --- | --- |
+| `cmd/{{ .ProjectName }}` | entry point, prints the result |
+| `internal/prompt` | the form and the answers it collects |
+
+## Running
+
+```bash
+make run
+```
+
+## The form
+
+`internal/prompt/prompt.go` fills an `Answers` struct. Every field binds by
+pointer through `Value(&answers.Field)`, so the struct is populated once
+`form.Run()` returns.
+
+Adding a question means adding a field and a matching input:
+
+```go
+huh.NewSelect[string]().
+    Title("Pick one\n").
+    Options(
+        huh.NewOption("First", "first"),
+        huh.NewOption("Second", "second"),
+    ).
+    Value(&answers.Choice),
+```
+
+Ctrl+C returns `huh.ErrUserAborted`. The entry point treats it as a clean exit
+rather than a failure, which is why cancelling prints a message instead of a
+stack trace.
+{{- end }}
+
+## Make targets
+
+| Target | Does |
+| --- | --- |
+| `make build` | compiles to `bin/{{ .ProjectName }}` |
+| `make run` | builds, then runs |
+| `make test` | `go test ./...` |

@@ -1,0 +1,63 @@
+# {{ .ProjectName }}
+
+A server rendered site with [htmx](https://htmx.org) on the front. The server
+sends html, htmx swaps it into the page, and there is no build step and no
+client side state to keep in sync.
+
+## Layout
+
+| Path | Holds |
+| --- | --- |
+| `cmd/web` | startup, env loading, route wiring |
+| `internal/domain` | the types passed between layers |
+| `internal/handler` | renders pages and fragments |
+| `internal/service` | application logic, talks to a repository interface |
+| `internal/repository/memory` | in-memory store, swapped out when you add a database |
+| `web/templates` | the html |
+| `web/static` | css and anything else served as is |
+
+## Getting started
+
+There is nothing to set up:
+
+```bash
+make run
+```
+
+Then open <http://localhost:8080>. Users are held in memory and start from one
+seeded record on every boot.
+
+## How a request flows
+
+`GET /` renders the whole page once. After that the list element carries
+`hx-get="/users"`, so htmx asks for the list on load and drops the html it gets
+back into the element.
+
+The form posts with `hx-post="/users"`. The handler adds the user and answers
+with the updated list rather than a redirect, which is why the list refreshes
+without a second request:
+
+| Route | Answers with |
+| --- | --- |
+| `GET /` | the full page |
+| `GET /users` | the list, as `<li>` elements |
+| `POST /users` | the updated list, as `<li>` elements |
+| `GET /static/` | embedded css |
+
+Fragments are defined with `{{ "{{" }} define "users" {{ "}}" }}` in
+`web/templates/users.html`, which is what lets one file serve both the first
+render and every swap after it.
+
+## Notes
+
+Templates and static files are embedded with `go:embed`, so the binary is the
+only thing you deploy. That also means a template change needs a rebuild.
+
+Templates are parsed once at startup. A broken template panics on boot instead
+of at the first request that hits it.
+
+Handlers render into a buffer before writing. Executing straight to the
+response sends a 200 with half a page when a template fails halfway through.
+
+The server shuts down on SIGINT and SIGTERM, giving in-flight requests ten
+seconds to finish.

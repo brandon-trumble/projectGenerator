@@ -1,0 +1,41 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"{{ .ProjectName }}/internal/domain"
+)
+
+type stubUserRepository struct {
+	users []domain.UserModel
+	err   error
+}
+
+func (s stubUserRepository) AllUsers(context.Context) ([]domain.UserModel, error) {
+	return s.users, s.err
+}
+
+func TestUserServiceAllUsers(t *testing.T) {
+	user := domain.UserModel{UserId: "1", UserName: "gopher"}
+	repo := stubUserRepository{users: []domain.UserModel{user}}
+
+	users, err := NewUserService(repo).AllUsers(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(users) != 1 || users[0].UserName != "gopher" {
+		t.Fatalf("unexpected users: %+v", users)
+	}
+}
+
+func TestUserServiceAllUsersRepositoryError(t *testing.T) {
+	repoErr := errors.New("connection refused")
+
+	_, err := NewUserService(stubUserRepository{err: repoErr}).AllUsers(context.Background())
+	if !errors.Is(err, repoErr) {
+		t.Fatalf("expected repository error, got: %v", err)
+	}
+}

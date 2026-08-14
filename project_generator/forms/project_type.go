@@ -13,6 +13,7 @@ func LoadProjectTypeForm(selectedProject *string, allowProjectType *bool) *huh.G
 			Options(
 				huh.NewOption("Http-Backend", "http_backend"),
 				huh.NewOption("Cli-Application", "cli_project"),
+				huh.NewOption("Frontend-Project(htmx)", "htmx_project"),
 				huh.NewOption("Empty-Project", "empty_project"),
 			).Value(selectedProject),
 

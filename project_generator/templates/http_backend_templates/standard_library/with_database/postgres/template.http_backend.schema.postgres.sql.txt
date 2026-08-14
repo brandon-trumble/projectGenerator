@@ -1,0 +1,8 @@
+-- the repository in internal/repository/postgres expects this table.
+-- apply it with: psql "$DATABASE_URL" -f internal/database/schema.sql
+CREATE TABLE IF NOT EXISTS users (
+    user_id    TEXT PRIMARY KEY,
+    user_name  TEXT NOT NULL UNIQUE,
+    first_name TEXT NOT NULL,
+    last_name  TEXT NOT NULL
+);

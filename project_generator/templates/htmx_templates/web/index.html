@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ .Title }}</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  </head>
+
+  <body>
+    <main>
+      <h1>{{ .Title }}</h1>
+
+      <!-- hx-post sends the form over ajax, and swaps whatever html comes
+           back into #users. no page reload, no json, no client state. -->
+      <form
+        class="add"
+        hx-post="/users"
+        hx-target="#users"
+        hx-swap="innerHTML"
+        hx-on::after-request="this.reset()"
+      >
+        <input name="userName" placeholder="user name" required />
+        <input name="firstName" placeholder="first name" />
+        <input name="lastName" placeholder="last name" />
+        <button type="submit">Add</button>
+      </form>
+
+      <!-- loads the list once on page load, from the same endpoint the form
+           posts to -->
+      <ul id="users" hx-get="/users" hx-trigger="load" hx-swap="innerHTML"></ul>
+    </main>
+  </body>
+</html>

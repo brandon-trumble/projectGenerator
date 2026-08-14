@@ -1,0 +1,45 @@
+package memory
+
+import (
+	"context"
+	"sync"
+
+	"{{ .ProjectName }}/internal/domain"
+)
+
+// UserRepository keeps users in memory. It satisfies the same interface the
+// service expects, so moving to a real database later only changes the line in
+// run.go that builds the repository.
+type UserRepository struct {
+	// an http server handles requests concurrently, so the store behind them
+	// needs a lock even while it is only seed data
+	mu    sync.RWMutex
+	users []domain.UserModel
+}
+
+func NewUserRepository() *UserRepository {
+	seed := domain.UserModel{UserId: "1", UserName: "gopher", FirstName: "Go", LastName: "Pher"}
+
+	return &UserRepository{users: []domain.UserModel{seed}}
+}
+
+func (r *UserRepository) AllUsers(_ context.Context) ([]domain.UserModel, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	// hand back a copy, otherwise callers can mutate the store through the
+	// slice they were given
+	users := make([]domain.UserModel, len(r.users))
+	copy(users, r.users)
+
+	return users, nil
+}
+
+func (r *UserRepository) AddUser(_ context.Context, user domain.UserModel) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.users = append(r.users, user)
+
+	return nil
+}

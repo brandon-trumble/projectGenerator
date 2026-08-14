@@ -1,0 +1,33 @@
+package commands
+
+import (
+	"github.com/spf13/cobra"
+)
+
+// verbose is a persistent flag, so every subcommand inherits it.
+var verbose bool
+
+// newRootCommand builds the command tree. Building it in a function rather than
+// a package level var keeps the commands testable, since each test can make its
+// own tree and point it at a buffer.
+func newRootCommand() *cobra.Command {
+	root := &cobra.Command{
+		Use:   "{{ .ProjectName }}",
+		Short: "{{ .ProjectName }} is a command line application",
+		// without this cobra dumps the full help text on a runtime error,
+		// which is only ever useful for a bad flag
+		SilenceUsage: true,
+	}
+
+	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose output")
+
+	// register subcommands here
+	root.AddCommand(newGreetCommand())
+
+	return root
+}
+
+// Execute runs the command line application.
+func Execute() error {
+	return newRootCommand().Execute()
+}

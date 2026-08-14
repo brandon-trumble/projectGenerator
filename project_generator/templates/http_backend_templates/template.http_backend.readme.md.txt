@@ -1,0 +1,131 @@
+# {{ .ProjectName }}
+
+An HTTP API on the standard library router. Storage sits behind an interface, so
+swapping it out never reaches the handlers.
+
+## Layout
+
+| Path | Holds |
+| --- | --- |
+| `cmd/api` | startup, env loading, route wiring |
+| `internal/domain` | the types passed between layers |
+| `internal/handler` | request in, JSON out |
+| `internal/service` | application logic, talks to a repository interface |
+{{- if eq .Database "postgres" }}
+| `internal/repository/postgres` | the SQL that backs the service |
+| `internal/database` | connection pool and schema |
+{{- else if eq .Database "mysql" }}
+| `internal/repository/mysql` | the SQL that backs the service |
+| `internal/database` | connection pool and schema |
+{{- else }}
+| `internal/repository/memory` | in-memory store, swapped out when you add a database |
+{{- end }}
+
+## Getting started
+{{ if eq .Database "postgres" }}
+You need a running postgres.
+
+1. Create the database:
+
+   ```bash
+   createdb {{ .ProjectName }}
+   ```
+
+2. Apply the schema. Nothing creates the `users` table at startup:
+
+   ```bash
+   psql "$DATABASE_URL" -f internal/database/schema.sql
+   ```
+
+3. Check `DATABASE_URL` in `.env`. It points at `localhost:5432` with the
+   `postgres` role by default.
+
+4. Run it:
+
+   ```bash
+   make run
+   ```
+
+The server refuses to start if it cannot reach the database, so a bad
+`DATABASE_URL` fails immediately instead of on the first request.
+{{- else if eq .Database "mysql" }}
+You need a running mysql.
+
+1. Create the database:
+
+   ```bash
+   mysql -e "CREATE DATABASE {{ .ProjectName }}"
+   ```
+
+2. Apply the schema. Nothing creates the `users` table at startup:
+
+   ```bash
+   mysql {{ .ProjectName }} < internal/database/schema.sql
+   ```
+
+3. Check `DATABASE_URL` in `.env`. It points at `localhost:3306` as `root` by
+   default.
+
+4. Run it:
+
+   ```bash
+   make run
+   ```
+
+The server refuses to start if it cannot reach the database, so a bad
+`DATABASE_URL` fails immediately instead of on the first request.
+{{- else }}
+There is nothing to set up:
+
+```bash
+make run
+```
+
+Users are held in memory and start from one seeded record on every boot.
+
+To move to a real database, add a repository that satisfies the
+`service.UserRepository` interface and change the line in `cmd/api/run.go` that
+builds `memory.NewUserRepository()`. Nothing above the service has to change.
+{{- end }}
+
+## Endpoints
+
+| Method | Path | Returns |
+| --- | --- | --- |
+| GET | `/users` | every user, as a JSON array |
+
+```bash
+curl localhost:8080/users
+```
+
+## Configuration
+
+`.env` is loaded by the makefile and read through `os.Getenv`.
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `PORT` | `8080` | port the server listens on |
+| `LOGGING_LEVEL` | `dev` | `dev` for debug logs, `prod` for info only |
+{{- if or (eq .Database "postgres") (eq .Database "mysql") }}
+| `DATABASE_URL` | see `.env` | connection string, required |
+{{- end }}
+
+## Make targets
+
+| Target | Does |
+| --- | --- |
+| `make build` | compiles to `bin/main` |
+| `make run` | builds, then runs |
+| `make test` | `go test ./...` |
+
+## Notes
+
+Logs are JSON through `log/slog`. Set `LOGGING_LEVEL=prod` to drop the debug
+lines.
+
+The server shuts down on SIGINT and SIGTERM, giving in-flight requests ten
+seconds to finish.
+{{- if .WithTests }}
+
+Tests stub the repository out, so `make test` needs no database.
+{{- end }}

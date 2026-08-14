@@ -1,0 +1,14 @@
+package main
+
+import (
+	"os"
+
+	"{{ .ProjectName }}/internal/commands"
+)
+
+func main() {
+	// cobra already prints the error itself, so main only decides the exit code
+	if err := commands.Execute(); err != nil {
+		os.Exit(1)
+	}
+}

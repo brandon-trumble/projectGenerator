@@ -1,0 +1,35 @@
+package handler
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+
+	"{{ .ProjectName }}/internal/domain"
+)
+
+type UserService interface {
+	AllUsers(ctx context.Context) ([]domain.UserModel, error)
+}
+
+func AllUserFetchHandler(users UserService) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		found, err := users.AllUsers(request.Context())
+		if err != nil {
+			slog.Error("error fetching users.", "error", err)
+			http.Error(writer, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// an empty table should serialize as [] rather than null
+		if found == nil {
+			found = []domain.UserModel{}
+		}
+
+		writer.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(writer).Encode(found); err != nil {
+			slog.Error("error encoding users response.", "error", err)
+		}
+	}
+}

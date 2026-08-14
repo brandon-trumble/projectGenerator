@@ -1,0 +1,10 @@
+{{ define "users" }}
+  {{ range . }}
+    <li>
+      <span class="name">{{ .UserName }}</span>
+      <span class="muted">{{ .FirstName }} {{ .LastName }}</span>
+    </li>
+  {{ else }}
+    <li class="muted">no users yet</li>
+  {{ end }}
+{{ end }}

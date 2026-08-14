@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"{{ .ProjectName }}/internal/database"
-	"{{ .ProjectName }}/internal/repository/postgres"
+	"{{ .ProjectName }}/internal/repository/mysql"
 	"{{ .ProjectName }}/internal/service"
 )
 
@@ -23,13 +23,13 @@ func run(ctx context.Context, getEnv func(string) string) error {
 		port = "8080"
 	}
 
-	pool, err := database.NewPool(ctx, getEnv("DATABASE_URL"))
+	db, err := database.NewDB(ctx, getEnv("DATABASE_URL"))
 	if err != nil {
 		return err
 	}
-	defer pool.Close()
+	defer db.Close()
 
-	users := service.NewUserService(postgres.NewUserRepository(pool))
+	users := service.NewUserService(mysql.NewUserRepository(db))
 
 	server := &http.Server{
 		Addr:    ":" + port,

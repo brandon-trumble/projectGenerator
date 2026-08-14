@@ -1,0 +1,35 @@
+package main
+
+import (
+	"fmt"
+	"io/fs"
+	"net/http"
+
+	"{{ .ProjectName }}/internal/handler"
+	"{{ .ProjectName }}/internal/service"
+	"{{ .ProjectName }}/web"
+)
+
+// setupRoutes wires the handlers from: /internal/handler and serves the
+// embedded assets.
+func setupRoutes(users *service.UserService, title string) (http.Handler, error) {
+	mux := http.NewServeMux()
+
+	// the assets are embedded under web/static, so strip that prefix off the
+	// filesystem as well as the url
+	static, err := fs.Sub(web.Files, "static")
+	if err != nil {
+		return nil, fmt.Errorf("reading embedded static files: %w", err)
+	}
+
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
+
+	// the fragments htmx talks to
+	mux.Handle("GET /users", handler.UsersFragmentHandler(users))
+	mux.Handle("POST /users", handler.AddUserHandler(users))
+
+	// keep this last, it matches everything the others did not
+	mux.Handle("GET /", handler.IndexHandler(title))
+
+	return mux, nil
+}

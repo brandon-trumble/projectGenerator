@@ -1,0 +1,38 @@
+package database
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
+
+	// the driver registers itself with database/sql, it is never called directly
+	_ "github.com/go-sql-driver/mysql"
+)
+
+// NewDB opens the pool and pings it, so a bad DSN or an unreachable
+// database fails during startup instead of on the first request.
+func NewDB(ctx context.Context, dsn string) (*sql.DB, error) {
+	if dsn == "" {
+		return nil, errors.New("DATABASE_URL is not set")
+	}
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("connecting to mysql: %w", err)
+	}
+
+	// sql.Open is lazy and the pool is unbounded by default, so set the limits
+	// before the first query goes out
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("pinging mysql: %w", err)
+	}
+
+	return db, nil
+}

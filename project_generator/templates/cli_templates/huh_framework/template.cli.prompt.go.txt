@@ -1,0 +1,55 @@
+package prompt
+
+import (
+	"errors"
+
+	"charm.land/huh/v2"
+)
+
+// Answers holds everything the form collects.
+type Answers struct {
+	Name      string
+	Env       string
+	Confirmed bool
+}
+
+// Ask runs the form and returns what the user entered.
+// The returned error is huh.ErrUserAborted when the user presses ctrl+c.
+func Ask() (Answers, error) {
+	var answers Answers
+
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("What is your name?\n").
+				Placeholder("EX: gopher").
+				Validate(func(s string) error {
+					if s == "" {
+						return errors.New("name cannot be empty")
+					}
+					return nil
+				}).
+				Value(&answers.Name),
+
+			huh.NewSelect[string]().
+				Title("Which environment?\n").
+				Options(
+					huh.NewOption("Development", "dev"),
+					huh.NewOption("Production", "prod"),
+				).
+				Value(&answers.Env),
+
+			huh.NewConfirm().
+				Title("Ready to continue?").
+				Affirmative("Yes").
+				Negative("No").
+				Value(&answers.Confirmed),
+		),
+	)
+
+	if err := form.Run(); err != nil {
+		return answers, err
+	}
+
+	return answers, nil
+}

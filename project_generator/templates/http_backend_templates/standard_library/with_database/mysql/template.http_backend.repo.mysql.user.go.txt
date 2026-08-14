@@ -1,24 +1,23 @@
-package postgres
+package mysql
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"{{ .ProjectName }}/internal/domain"
 )
 
 type UserRepository struct {
-	pool *pgxpool.Pool
+	db *sql.DB
 }
 
-func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
-	return &UserRepository{pool: pool}
+func NewUserRepository(db *sql.DB) *UserRepository {
+	return &UserRepository{db: db}
 }
 
 func (r *UserRepository) AllUsers(ctx context.Context) ([]domain.UserModel, error) {
-	rows, err := r.pool.Query(ctx, `SELECT user_id, user_name, first_name, last_name FROM users`)
+	rows, err := r.db.QueryContext(ctx, `SELECT user_id, user_name, first_name, last_name FROM users`)
 	if err != nil {
 		return nil, fmt.Errorf("querying users: %w", err)
 	}
@@ -33,6 +32,8 @@ func (r *UserRepository) AllUsers(ctx context.Context) ([]domain.UserModel, erro
 		users = append(users, user)
 	}
 
+	// rows.Err reports errors that ended the loop early, checking it is what
+	// separates "no more rows" from "the connection dropped"
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating users: %w", err)
 	}

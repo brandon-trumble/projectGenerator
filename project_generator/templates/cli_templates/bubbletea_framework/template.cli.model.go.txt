@@ -1,0 +1,102 @@
+package tui
+
+import (
+	"fmt"
+	"strings"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+)
+
+var (
+	titleStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Bold(true)
+	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("85"))
+	helpStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+)
+
+// Model is the whole state of the application. Bubble Tea never mutates it for
+// you: Update receives a copy, returns the next one, and View renders it.
+type Model struct {
+	choices  []string
+	cursor   int
+	selected map[int]struct{}
+	quitting bool
+}
+
+func NewModel() Model {
+	return Model{
+		choices:  []string{"Write some code", "Drink some coffee", "Ship it"},
+		selected: make(map[int]struct{}),
+	}
+}
+
+// Init returns the first command to run, or nil when there is no startup work.
+func (m Model) Init() tea.Cmd {
+	return nil
+}
+
+// Update handles every message: key presses, window resizes, and anything your
+// own commands send back.
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			m.quitting = true
+			return m, tea.Quit
+
+		case "up", "k":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+
+		case "down", "j":
+			if m.cursor < len(m.choices)-1 {
+				m.cursor++
+			}
+
+		// note: v2 reports the space bar as "space", not " "
+		case "enter", "space":
+			if _, ok := m.selected[m.cursor]; ok {
+				delete(m.selected, m.cursor)
+			} else {
+				m.selected[m.cursor] = struct{}{}
+			}
+		}
+	}
+
+	return m, nil
+}
+
+// View is called after every Update, so it should only render, never do work.
+func (m Model) View() tea.View {
+	if m.quitting {
+		return tea.NewView("")
+	}
+
+	var screen strings.Builder
+	screen.WriteString(titleStyle.Render("What should we do today?") + "\n\n")
+
+	for i, choice := range m.choices {
+		cursor := " "
+		if m.cursor == i {
+			cursor = ">"
+		}
+
+		checked := " "
+		if _, ok := m.selected[i]; ok {
+			checked = "x"
+		}
+
+		line := fmt.Sprintf("%s [%s] %s", cursor, checked, choice)
+		if m.cursor == i {
+			line = selectedStyle.Render(line)
+		}
+
+		screen.WriteString(line + "\n")
+	}
+
+	screen.WriteString("\n" + helpStyle.Render("up/down: move - enter: select - q: quit"))
+
+	return tea.NewView(screen.String())
+}

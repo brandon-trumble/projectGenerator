@@ -7,8 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"{{ .ProjectName }}/internal/database"
-	"{{ .ProjectName }}/internal/repository/postgres"
+	"{{ .ProjectName }}/internal/repository/memory"
 	"{{ .ProjectName }}/internal/service"
 )
 
@@ -23,13 +22,10 @@ func run(ctx context.Context, getEnv func(string) string) error {
 		port = "8080"
 	}
 
-	pool, err := database.NewPool(ctx, getEnv("DATABASE_URL"))
-	if err != nil {
-		return err
-	}
-	defer pool.Close()
-
-	users := service.NewUserService(postgres.NewUserRepository(pool))
+	// this project was scaffolded without a database, so users live in memory
+	// and are gone on restart. swap this line for a database backed repository
+	// when you add one, nothing else has to change.
+	users := service.NewUserService(memory.NewUserRepository())
 
 	server := &http.Server{
 		Addr:    ":" + port,

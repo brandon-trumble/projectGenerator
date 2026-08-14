@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"time"
 
-	"{{ .ProjectName }}/internal/database"
-	"{{ .ProjectName }}/internal/repository/postgres"
+	"{{ .ProjectName }}/internal/repository/memory"
 	"{{ .ProjectName }}/internal/service"
 )
 
 // run acts as our "main" initialization function.
-// it sets up database connections, routes, and gets all the env
+// it sets up the routes, templates, and gets all the env
 // vars(hence the getEnv func)
 // bubble all build time errors up to this or run time and handle them in main
 // I suggest using slog for these as it's JSON is unmatched
@@ -23,17 +22,18 @@ func run(ctx context.Context, getEnv func(string) string) error {
 		port = "8080"
 	}
 
-	pool, err := database.NewPool(ctx, getEnv("DATABASE_URL"))
+	// users live in memory and are gone on restart. swap this line for a
+	// database backed repository when you add one.
+	users := service.NewUserService(memory.NewUserRepository())
+
+	routes, err := setupRoutes(users, "{{ .ProjectName }}")
 	if err != nil {
 		return err
 	}
-	defer pool.Close()
-
-	users := service.NewUserService(postgres.NewUserRepository(pool))
 
 	server := &http.Server{
 		Addr:    ":" + port,
-		Handler: setupRoutes(users),
+		Handler: routes,
 	}
 
 	// ctx is cancelled on SIGINT/SIGTERM, which gives in-flight

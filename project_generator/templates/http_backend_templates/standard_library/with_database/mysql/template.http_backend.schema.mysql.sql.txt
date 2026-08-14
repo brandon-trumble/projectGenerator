@@ -1,0 +1,8 @@
+-- the repository in internal/repository/mysql expects this table.
+-- apply it with: mysql {{ .ProjectName }} < internal/database/schema.sql
+CREATE TABLE IF NOT EXISTS users (
+    user_id    VARCHAR(64) PRIMARY KEY,
+    user_name  VARCHAR(255) NOT NULL UNIQUE,
+    first_name VARCHAR(255) NOT NULL,
+    last_name  VARCHAR(255) NOT NULL
+);
