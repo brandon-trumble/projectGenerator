@@ -8,6 +8,7 @@ import (
 	"projectGenerator/project_generator/forms"
 	"projectGenerator/project_generator/installer"
 	"runtime"
+	"strings"
 	"time"
 
 	"charm.land/huh/v2"
@@ -15,7 +16,27 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
+// stamped into release builds by goreleaser through -ldflags. A build straight
+// from source leaves them at these defaults.
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+
+	// there are only two flags, so a comparison beats wiring up the flag package.
+	// this accepts install, -install and --install alike.
+	var flagArg string
+	if len(os.Args) > 1 {
+		flagArg = strings.TrimLeft(os.Args[1], "-")
+	}
+
+	if flagArg == "version" {
+		fmt.Println(versionString())
+		return
+	}
 
 	var projectName string
 	var selectedProject string
@@ -48,7 +69,7 @@ func main() {
 	// on the first run, offer to drop the binary somewhere on the user's PATH so
 	// it can be launched by name from any directory. --install redoes this on
 	// demand, and skips straight to it.
-	onlySetup := len(os.Args) > 1 && (os.Args[1] == "--install" || os.Args[1] == "-install")
+	onlySetup := flagArg == "install"
 	reportSetup(onlySetup, successText, infoText, cancelledText)
 	if onlySetup {
 		return
@@ -111,6 +132,14 @@ func main() {
 	fmt.Println(successText.Render("\nProject scaffolded successfully!"))
 	fmt.Println(infoText.Render("\nPlease cd into your project. Project location: " + projectDir))
 
+}
+
+// versionString describes the running build, in the form goreleaser stamped it.
+func versionString() string {
+	if version == "dev" {
+		return installer.CommandName + " dev (built from source)"
+	}
+	return fmt.Sprintf("%s %s (commit %s, built %s)", installer.CommandName, version, commit, date)
 }
 
 // reportSetup runs the PATH install and prints what it did. A failure here is

@@ -7,11 +7,22 @@ build:
 install: build
 	./$(BINARY_NAME) --install
 
+# validates .goreleaser.yaml without building anything
+release-check:
+	goreleaser check
+
+# builds the release archives for every platform into dist/, publishing nothing
+snapshot:
+	goreleaser release --snapshot --clean
+
 clean:
-	rm $(BINARY_NAME)
+	rm -f $(BINARY_NAME)
+	rm -rf dist
 
 run:
 	go run main.go
 
 vet:
 	go vet
+
+

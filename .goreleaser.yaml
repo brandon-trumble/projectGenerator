@@ -1,0 +1,83 @@
+# Build and publish cross-platform archives on every pushed tag.
+# Local checks:  make release-check   (validate this file)
+#                make snapshot        (build dist/ without publishing)
+version: 2
+
+project_name: project-gen
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+
+builds:
+  - id: project-gen
+    main: .
+    # the installed command is project-gen, regardless of the local build name
+    binary: project-gen
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .ShortCommit }}
+      - -X main.date={{ .CommitDate }}
+    # reproducible builds: stamp files with the commit time, not the build time
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: project-gen
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: bran7230
+    name: projectGenerator
+  draft: false
+  # tags like v1.0.0-rc1 are published as pre-releases automatically
+  prerelease: auto
+  footer: |
+    ## Installing
+
+    Download the archive for your platform, extract it, and run the binary once.
+    It offers to install itself to a per-user bin directory and add that
+    directory to your PATH, no admin rights required.
+
+    ```bash
+    tar -xzf project-gen_{{ .Version }}_linux_amd64.tar.gz
+    ./project-gen
+    ```
+
+    Open a new terminal afterwards, then run `project-gen` from anywhere.
