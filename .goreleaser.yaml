@@ -62,9 +62,8 @@ changelog:
       - Merge branch
 
 release:
-  github:
-    owner: bran7230
-    name: projectGenerator
+  # owner/name are detected from the git remote on purpose. Hardcoding them
+  # breaks asset uploads with a 307 the moment the repo is renamed or moved.
   draft: false
   # tags like v1.0.0-rc1 are published as pre-releases automatically
   prerelease: auto

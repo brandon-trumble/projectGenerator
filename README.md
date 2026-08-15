@@ -60,7 +60,7 @@ Prebuilt archives are published for every tagged version by
 | Windows | ARM64 | `project-gen_<version>_windows_arm64.zip` |
 
 Download the one for your machine from the
-[releases page](https://github.com/bran7230/projectGenerator/releases), then:
+[releases page](https://github.com/brandon-trumble/projectGenerator/releases), then:
 
 ```bash
 # Linux / macOS
@@ -96,7 +96,7 @@ xattr -d com.apple.quarantine project-gen
 ### From Source
 
 ```bash
-git clone https://github.com/bran7230/projectGenerator.git
+git clone https://github.com/brandon-trumble/projectGenerator.git
 cd projectGenerator
 go build -o project-gen main.go
 ```
@@ -104,7 +104,7 @@ go build -o project-gen main.go
 ### Or run the makefile for path setup
 
 ```bash
-git clone https://github.com/bran7230/projectGenerator.git
+git clone https://github.com/brandon-trumble/projectGenerator.git
 cd projectGenerator
 make install
 ```
