@@ -53,12 +53,29 @@ cd projectGenerator
 go build -o project-gen main.go
 ```
 
-Move the binary to your PATH:
-```bash
-# macOS/Linux
-mv project-gen /usr/local/bin/
+### Setting up PATH
 
-# Or add current directory to PATH
+Just run the binary. On its first run it offers to install itself, and answering
+yes copies it to a user-local bin directory and adds that directory to your PATH:
+
+| Platform | Installed to | PATH updated in |
+| --- | --- | --- |
+| Linux / macOS | `~/.local/bin` | `~/.bashrc`, `~/.zshrc`, `~/.profile`, or `~/.config/fish/config.fish` |
+| Windows | `%LOCALAPPDATA%\Programs\project-gen` | the per-user `Path` variable |
+
+No admin rights or `sudo` are needed. Open a new terminal afterwards so the shell
+picks up the new PATH, then run `project-gen` from any directory.
+
+If you skipped the prompt, run the install again at any time:
+
+```bash
+./project-gen --install
+```
+
+Or through the makefile:
+
+```bash
+make install
 ```
 
 ## Usage

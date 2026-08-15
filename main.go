@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"projectGenerator/project_generator"
 	"projectGenerator/project_generator/forms"
+	"projectGenerator/project_generator/installer"
 	"runtime"
 	"time"
 
@@ -42,6 +44,16 @@ func main() {
 `
 
 	fmt.Println("\n", asciColor.Render(banner))
+
+	// on the first run, offer to drop the binary somewhere on the user's PATH so
+	// it can be launched by name from any directory. --install redoes this on
+	// demand, and skips straight to it.
+	onlySetup := len(os.Args) > 1 && (os.Args[1] == "--install" || os.Args[1] == "-install")
+	reportSetup(onlySetup, successText, infoText, cancelledText)
+	if onlySetup {
+		return
+	}
+
 	// basic form
 	form := huh.NewForm(
 
@@ -99,4 +111,52 @@ func main() {
 	fmt.Println(successText.Render("\nProject scaffolded successfully!"))
 	fmt.Println(infoText.Render("\nPlease cd into your project. Project location: " + projectDir))
 
+}
+
+// reportSetup runs the PATH install and prints what it did. A failure here is
+// never fatal, the generator still works when launched from its own directory.
+func reportSetup(forced bool, successText, infoText, cancelledText lipgloss.Style) {
+	var res installer.Result
+	var err error
+
+	if forced {
+		res, err = installer.Setup()
+	} else {
+		res, err = installer.MaybeSetup()
+	}
+
+	if err != nil {
+		fmt.Println(cancelledText.Render("Could not finish PATH setup: " + err.Error()))
+		return
+	}
+
+	if res.AlreadySet {
+		if forced {
+			fmt.Println(infoText.Render("Already installed at " + res.BinaryPath))
+		}
+		return
+	}
+
+	// declined, skipped, or nothing to do
+	if !res.Copied && !res.PathEdited {
+		return
+	}
+
+	if res.Copied {
+		fmt.Println(successText.Render("Installed to " + res.BinaryPath))
+	}
+
+	if res.PathEdited {
+		for _, file := range res.ShellFiles {
+			fmt.Println(infoText.Render("Added to your PATH in " + file))
+		}
+		if len(res.ShellFiles) == 0 {
+			fmt.Println(infoText.Render("Added " + res.Dir + " to your PATH"))
+		}
+		fmt.Println(infoText.Render("Open a new terminal to pick it up, then run: " + installer.CommandName))
+	} else {
+		fmt.Println(infoText.Render("Run it from anywhere with: " + installer.CommandName))
+	}
+
+	fmt.Println()
 }
