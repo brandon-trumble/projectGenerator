@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"text/template"
 )
 
@@ -24,7 +22,6 @@ type templateFile struct {
 
 type TemplateData struct {
 	ProjectName string
-	GoVersion   string
 
 	// the readme templates branch on these to describe the project that was
 	// actually generated
@@ -35,6 +32,12 @@ type TemplateData struct {
 
 // GenerateProject takes in fields from form, and inserts directories and files based of these.
 func GenerateProject(projectName, projectType, selectedDatabase, cliFramework string, allowTestCases bool) (string, error) {
+	// checked again here, not only in the form, so the name can never join a
+	// path that leaves the output directory
+	if err := ValidateProjectName(projectName); err != nil {
+		return "", err
+	}
+
 	userHomeDir, _ := os.UserHomeDir()
 	parentDir := filepath.Join(userHomeDir, "generated_go_projects", projectName)
 
@@ -43,9 +46,6 @@ func GenerateProject(projectName, projectType, selectedDatabase, cliFramework st
 	if err != nil {
 		return "", fmt.Errorf("golang not installed. Please install golang first")
 	}
-
-	// get their go version and strip the word "go" from the front
-	userGoVer := strings.ReplaceAll(runtime.Version(), "go", "")
 
 	if err := os.MkdirAll(parentDir, 0750); err != nil {
 		return "", fmt.Errorf("error making directory. error: %s", err)
@@ -481,7 +481,6 @@ func GenerateProject(projectName, projectType, selectedDatabase, cliFramework st
 	// it solves the internal scaffolding import problem I faced.
 	templateData := TemplateData{
 		ProjectName:  projectName,
-		GoVersion:    userGoVer,
 		Database:     selectedDatabase,
 		CliFramework: cliFramework,
 		WithTests:    allowTestCases,

@@ -243,7 +243,9 @@ Both flags also accept the `-install` and `install` spellings.
 
 ### Interactive Prompts
 
-1. **Project Name** - Enter a name for your new project
+1. **Project Name** - Enter a name for your new project. It becomes a directory
+   name and the module path, so it is limited to letters, digits, `-`, `_` and
+   `.`; spaces and path separators are rejected as you type.
 2. **Project Type** - Choose between:
    - Http-Backend
    - Cli-Application
@@ -290,11 +292,13 @@ project-generator/
 ├── go.mod                         # Go module definition
 ├── go.sum                         # Dependency checksums
 ├── makefile                       # Build automation
+├── LICENSE                        # MIT license
 ├── .goreleaser.yaml               # Cross-platform release builds
 ├── .github/
 │   └── workflows/release.yml      # Publishes a release on every v* tag
 ├── project_generator/             # Core generation logic
 │   ├── project_gen.go             # Scaffolding and template rendering
+│   ├── name.go                    # Project name validation
 │   ├── forms/                     # Interactive prompt definitions
 │   ├── installer/                 # Self-install and PATH setup
 │   └── templates/                 # Embedded project templates
@@ -340,7 +344,8 @@ Makefile targets:
 | `make build` | Builds the binary |
 | `make install` | Builds, then installs it onto your PATH |
 | `make run` | Runs from source with `go run` |
-| `make vet` | Runs `go vet` |
+| `make vet` | Runs `go vet ./...` |
+| `make test` | Runs `go test ./...` |
 | `make release-check` | Validates `.goreleaser.yaml` |
 | `make snapshot` | Builds all release archives into `dist/`, publishes nothing |
 | `make clean` | Removes the built binary and `dist/` |
@@ -392,7 +397,7 @@ installs its own copy, so it is only needed for local dry runs.
 
 ## License
 
-This project is open source and available under the MIT License.
+Released under the MIT License. See [LICENSE](LICENSE) for the full text.
 
 ## Support
 

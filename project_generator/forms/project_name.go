@@ -3,6 +3,8 @@ package forms
 import (
 	"errors"
 
+	"projectGenerator/project_generator"
+
 	"charm.land/huh/v2"
 )
 
@@ -10,12 +12,9 @@ func LoadProjectNameForm(projectName *string, allowProjectName *bool) *huh.Group
 	form := huh.NewGroup(
 		huh.NewInput().
 			Title("Enter project name\n").
-			Validate(func(s string) error {
-				if s == "" {
-					return errors.New("project name is invalid. Please enter a new name")
-				}
-				return nil
-			}).
+			// the name becomes a directory and a module path, so it has to be
+			// checked here rather than failing later inside "go mod init"
+			Validate(project_generator.ValidateProjectName).
 			Placeholder("EX: funApi").
 			Value(projectName),
 		huh.NewConfirm().

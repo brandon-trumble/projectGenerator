@@ -23,6 +23,9 @@ run:
 	go run main.go
 
 vet:
-	go vet
+	go vet ./...
+
+test:
+	go test ./...
 
 
