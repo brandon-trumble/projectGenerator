@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ .Title }}</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="../static/style.css" />
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 
@@ -21,9 +21,15 @@
           hx-swap="innerHTML"
           hx-on::after-request="this.reset()"
   >
-    <input name="userName" placeholder="user name" required />
-    <input name="firstName" placeholder="first name" />
-    <input name="lastName" placeholder="last name" />
+    <label>
+      <input name="userName" placeholder="user name" required />
+    </label>
+    <label>
+      <input name="firstName" placeholder="first name" />
+    </label>
+    <label>
+      <input name="lastName" placeholder="last name" />
+    </label>
     <button type="submit">Add</button>
   </form>
 
